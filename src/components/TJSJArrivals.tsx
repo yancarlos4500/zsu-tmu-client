@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { io } from 'socket.io-client';
-const socket = io('http://localhost:3001');
+// const socket = io('http://localhost:3001');
+const socket = io('zsu-tmu-server-production.up.railway.app');
 
 const GATES = ['SAALR', 'BEANO', 'JOSHE', 'VEDAS', 'STT'];
 const TJSJ_COORDS = { lat: 18.4394, lon: -66.0018 };
