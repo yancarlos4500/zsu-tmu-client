@@ -55,6 +55,11 @@ const TJSJArrivals: React.FC = () => {
   socket.emit('updateLimits', newLimits); // 🔁 Real-time sync across devices
 };
 
+  useEffect(() => {
+  socket.on('limits', (incomingLimits) => {
+    setLimits(incomingLimits);
+  });
+
   const fetchData = async () => {
     const nowUtc = new Date(new Date().toISOString());
     const start = roundToNext15(nowUtc);
@@ -94,11 +99,6 @@ const TJSJArrivals: React.FC = () => {
     }
   };
 
-useEffect(() => {
-  socket.on('limits', (incomingLimits) => {
-    setLimits(incomingLimits);
-  });
-
   fetchData();
   const interval = setInterval(fetchData, 15000);
 
@@ -107,6 +107,7 @@ useEffect(() => {
     clearInterval(interval);
   };
 }, [windowHours]);
+
 
   const getCellColor = (val: number, limit: number) => {
     if (val > limit) return 'bg-red-600 text-white';
