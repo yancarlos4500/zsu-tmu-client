@@ -141,7 +141,17 @@ const getRemainingRoute = (ac: Aircraft, fixCoords: Record<string, Fix[]>): Fix[
 
   return fixes;
 };
-
+const SECTOR_LIMITS: Record<string, number> = {
+  'Sector 1': 10,
+  'Sector 2': 20,
+  'Sector 3': 15,
+  'Sector 4': 30,
+  'Sector 5': 10,
+  'Sector 6': 25,
+  'Sector 7': 15,
+  'Sector 8': 30,
+  'Sector 9': 5,
+};
 
 const SectorMatrix: React.FC = () => {
   const [aircraftData, setAircraftData] = useState<Aircraft[]>([]);

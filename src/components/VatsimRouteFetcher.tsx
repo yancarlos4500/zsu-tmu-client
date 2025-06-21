@@ -8,12 +8,7 @@ import airportRaw from "../airports.json";
 
 import { log } from "node:console";
 
-const icon = L.icon({
-  iconUrl: '/aircraft-icon.png',
-  iconSize: [30, 35],
-  iconAnchor: [15, 15],
-  popupAnchor: [0, -10],
-});
+
 
 interface FlightPlan {
   departure: string;
@@ -146,7 +141,9 @@ function estimateFuturePositions(
     const mins = dist / NM_PER_MIN;
     eta = new Date(eta.getTime() + mins * 60 * 1000);
 
-    result.push({ coord: [next[0], next[1]], eta: eta.toISOString().split("T")[1]?.slice(0, 5) + "Z" });
+    result.push({ coord: [next[0], next[1]], eta: eta.getUTCHours()+''+eta.getUTCMinutes() + "Z" });
+    console.log(eta.getUTCHours()+''+eta.getUTCMinutes());
+    
     prev = next;
   }
 
@@ -179,6 +176,10 @@ const airportCoords: { [icao: string]: [number, number] } = {
   MBPV: [21.7736, -72.2659],
   MTPP: [18.579, -72.2925],
 };
+
+
+const zsu_airports = ['TJSJ', 'TIST', 'TISX', 'TUPJ', 'TJIG', 'TJRV', 'TJVQ'];
+const TNCM_airports = ['TNCM', 'TFFG', 'TFFJ', 'TNCS', 'TQPF'];
 
 export default function VatsimRouteFetcher() {
   const [pilots, setPilots] = useState<Pilot[]>([]);
@@ -260,7 +261,7 @@ const getFixCoordAndName = (fix: string, prev?: [number, number]): { coord: [num
     const min = (dist * 0.539957) / gs * 60;
     time = new Date(time.getTime() + min * 60000);
     path.push(fixData.coord);
-    labels.push({ coord: fixData.coord, name: fixData.name, dist: dist * 0.539957, eta: time.toUTCString().split(" ")[4] + "Z" });
+    labels.push({ coord: fixData.coord, name: fixData.name, dist: dist * 0.539957, eta: String(time.getUTCHours()).padStart(2, '0')+''+String(time.getUTCMinutes()).padStart(2, '0') + "Z" });
 
     // Inject intermediate fixes if both current and next fix are on same airway
     if (nextFix) {
@@ -281,7 +282,7 @@ const getFixCoordAndName = (fix: string, prev?: [number, number]): { coord: [num
             const min = (dist * 0.539957) / gs * 60;
             time = new Date(time.getTime() + min * 60000);
             path.push(coord);
-            labels.push({ coord, name: wp.waypoint, dist: dist * 0.539957, eta: time.toUTCString().split(" ")[4] + "Z" });
+            labels.push({ coord, name: wp.waypoint, dist: dist * 0.539957, eta: String(time.getUTCHours()).padStart(2, '0')+''+String(time.getUTCMinutes()).padStart(2, '0') + "Z"  });
             lastCoord = coord;
           }
         }
@@ -307,12 +308,13 @@ if (!destCoord && airportDB[dest]) {
   const min = (dist * 0.539957) / gs * 60;
   time = new Date(time.getTime() + min * 60000);
   path.push(destCoord);
-  labels.push({ coord: destCoord, name: dest, dist: dist * 0.539957, eta: time.toUTCString().split(" ")[4] + "Z" });
+  labels.push({ coord: destCoord, name: dest, dist: dist * 0.539957, eta: String(time.getUTCHours()).padStart(2, '0')+''+String(time.getUTCMinutes()).padStart(2, '0') + "Z" });
 }
 
     const future = estimateFuturePositions([lat, lon], path, gs);
     return { path, labels, future };
   };
+
 
   return (
     <div className="w-full h-screen">
@@ -325,6 +327,13 @@ if (!destCoord && airportDB[dest]) {
                    attribution="© OpenStreetMap"
                    />
           {pilots.map((pilot) => {
+            const arrival = pilot.flight_plan?.arrival || '';
+            const departure = pilot.flight_plan?.departure || '';
+            let color = 'gray'
+if(zsu_airports.includes(departure) || TNCM_airports.includes(departure)) color = 'red'
+            if(zsu_airports.includes(arrival) || TNCM_airports.includes(arrival)) color = 'green'
+            if(zsu_airports.includes(departure) && zsu_airports.includes(arrival)) color = 'yellow'
+            if( (zsu_airports.includes(departure) || zsu_airports.includes(arrival)) && (TNCM_airports.includes(departure) || TNCM_airports.includes(arrival)) ) color = 'yellow'
             const { path, labels, future } = extractRemainingRoute(pilot.flight_plan!.route, pilot.latitude, pilot.longitude, pilot.heading, pilot.groundspeed, pilot.flight_plan!.arrival);
             const nextRoute = [
               [pilot.latitude, pilot.longitude],
@@ -336,21 +345,37 @@ if (!destCoord && airportDB[dest]) {
                 {nextRoute.length > 1 && (
                   <Polyline
                     positions={nextRoute as [number, number][]}
-                    pathOptions={{ color: "lime", weight: 2 }}
+                    pathOptions={{
+                color: color,
+                weight: 2,
+                dashArray: "6 6"
+              }}
                   />
                 )}
                 {labels.map((label, idx) => (
                   <Marker
                     key={`${pilot.cid}-fix-${idx}`}
                     position={label.coord}
+                    
                     icon={L.divIcon({
-                      html: `<div style="color: cyan; font-size: 20px;">▲<div style="font-size:12px; position: relative; top: -5px; left:-5px;">${label.name}<br/>${label.dist.toFixed(0)} NM<br/>ETA ${label.eta}</div></div>`,
+                      html: `<div style="color: ${color}; font-size: 20px;">▲ <div style="font-size: 12px">${label.name}</div></div>`,
                       className: '',
                       iconSize: [30, 30]
-                    })}
-                  />
+                    })
+                   }
+                  eventHandlers={{
+                      mouseover: (e) => e.target.openPopup(),
+                      mouseout: (e) => e.target.closePopup(),
+                    }}
+                  >
+                    <Popup >
+                      {label.name}<br/>
+                      {label.eta}
+                      
+                    </Popup>
+                    </Marker>
                 ))}
-                {future.map((pt, idx) => (
+                {/* {future.map((pt, idx) => (
                   <Marker
                     key={`${pilot.cid}-future-${idx}`}
                     position={pt.coord}
@@ -360,10 +385,16 @@ if (!destCoord && airportDB[dest]) {
                       iconSize: [20, 20]
                     })}
                   />
-                ))}
+                ))} */}
                 <Marker
                   position={[pilot.latitude, pilot.longitude]}
-                  icon={icon}
+                    icon={ L.icon({
+                      iconUrl: '/aircraft-icon.png',
+                      iconSize: [30, 35],
+                      iconAnchor: [15, 15],
+                      popupAnchor: [0, -10],
+                    })
+                  }
                   rotationAngle={pilot.heading}
                   rotationOrigin="center center"
                 >

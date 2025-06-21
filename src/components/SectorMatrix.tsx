@@ -141,7 +141,17 @@ const getRemainingRoute = (ac: Aircraft, fixCoords: Record<string, Fix[]>): Fix[
 
   return fixes;
 };
-
+const SECTOR_LIMITS: Record<string, number> = {
+  'Sector 1': 0,
+  'Sector 2': 20,
+  'Sector 3': 15,
+  'Sector 4': 30,
+  'Sector 5': 10,
+  'Sector 6': 25,
+  'Sector 7': 15,
+  'Sector 8': 30,
+  'Sector 9': 5,
+};
 
 const SectorMatrix: React.FC = () => {
   const [aircraftData, setAircraftData] = useState<Aircraft[]>([]);
@@ -153,7 +163,7 @@ const SectorMatrix: React.FC = () => {
   const [windowHours, setWindowHours] = useState(5);
   const [limits, setLimits] = useState<Record<string, number>>(() => {
     const init: Record<string, number> = {};
-    ALL_SECTORS.forEach(s => (init[s] = 8));
+    ALL_SECTORS.forEach(s => (init[s] = SECTOR_LIMITS[s+1]));
     return init;
   });
 
@@ -318,6 +328,7 @@ const SectorMatrix: React.FC = () => {
             url="https://api.mapbox.com/styles/v1/yancarlos4500/clnorn0yn008v01qugoglakdj/tiles/256/{z}/{x}/{y}?access_token=pk.eyJ1IjoieWFuY2FybG9zNDUwMCIsImEiOiJja2ZrbnQzdmExMDhnMzJwbTdlejNhdnJuIn0.aoHpGyZLaQRcp8SPYowuOQ"
           attribution="© OpenStreetMap"
           />
+          
           {aircraftData.map(ac => {
             let color = 'gray'
             const polygon = turfPolygon(predictionBoundary);
@@ -344,13 +355,16 @@ const SectorMatrix: React.FC = () => {
                   <Popup>{ac.callsign}</Popup>
                 </Marker>
                 <Polyline
-                  positions={[
-                    [ac.latitude, ac.longitude],
-                    ...remRoute.map(fix => [fix.lat, fix.lon] as [number, number])
-                  ]}
-                  color = {color}
-                  weight={3}
-                />
+                              positions={[
+                [ac.latitude, ac.longitude],
+                ...remRoute.map(fix => [fix.lat, fix.lon] as [number, number])
+              ]}
+              pathOptions={{
+                color,
+                weight: 2,
+                dashArray: "6 6"
+              }}
+            />
               </React.Fragment>
             );
           })}
