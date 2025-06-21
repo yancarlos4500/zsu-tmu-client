@@ -56,7 +56,7 @@ interface RouteData {
   [airway: string]: Waypoint[];
 }
 
-const routesData: RouteData = routesDataRaw;
+const routesData = routesDataRaw as RouteData;
 const airportDB = airportRaw as Record<string, AirportEntry>;
 
 
@@ -207,8 +207,8 @@ export default function VatsimRouteFetcher() {
   const cleanFix = (fix: string): string =>
   fix.split("/")[0].trim().toUpperCase();
 
-  const isSidStar = (fix: string): boolean =>
-  /^[A-Z]+\d+[A-Z]$/.test(fix);
+  // const isSidStar = (fix: string): boolean =>
+  // /^[A-Z]+\d+[A-Z]$/.test(fix);
 
 const getFixCoordAndName = (fix: string, prev?: [number, number]): { coord: [number, number], name: string } | null => {
   const clean = cleanFix(fix);
